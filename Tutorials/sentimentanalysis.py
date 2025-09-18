@@ -17,4 +17,8 @@ def analyze_sentiment(text):
 
 input = "I love programming!"
 output = analyze_sentiment(input)
-print(output)
+print(input + " returns a " + output['label'] + " sentiment")
+
+input = "I hate programming!"
+output = analyze_sentiment(input)
+print(input + " returns a " + output['label'] + " sentiment")

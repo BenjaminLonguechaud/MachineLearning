@@ -1,7 +1,20 @@
+
 from transformers import BertForQuestionAnswering, BertTokenizer
 import torch
 
 model_name = "bert-large-uncased-whole-word-masking-finetuned-squad"
+
+def remove_hash_signs(text):
+    """
+    Remove all '#' characters from the input string and return the result.
+
+    Args:
+        text (str): The input string.
+
+    Returns:
+        str: The string with all '#' characters removed.
+    """
+    return text.replace('#', '')
 
 def bert_embeddings(question, answer):
 
@@ -41,6 +54,7 @@ def bert_embeddings(question, answer):
 
     # 7. Extract and print the answer span from the tokens
     answer = "".join(tokens[start_index : end_index + 1])
+    answer = remove_hash_signs(answer)
     print("Answer: ", answer)
 
 

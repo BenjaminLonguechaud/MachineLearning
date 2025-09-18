@@ -3,7 +3,7 @@ import torch
 import requests
 
 try:
-    url = input("https://en.wikipedia.org/wiki/Thales_Group")
+    url = input('https://en.wikipedia.org/wiki/Thales_Group')
     response = requests.get(url, timeout=10)
     webpage_text = response.text
     print("Webpage text loaded.")
