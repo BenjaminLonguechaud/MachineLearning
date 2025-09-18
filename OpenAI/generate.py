@@ -11,18 +11,30 @@ Args:
     api_key (str): Your OpenAI API key.
     model (str): The model to use (default: gpt-3.5-turbo).
     max_tokens (int): Maximum number of tokens to generate.
+    temperature (float): Controls randomness/creativity (default: 0.5).
 Returns:
     str: The generated text.
 """
-def generate_text(prompt, model="gpt-3.5-turbo", max_tokens=10):
-    client = openai.OpenAI()
-    response = client.chat.completions.create(
-        model=model,
-        messages=[{"role": "user", "content": prompt}],
-        max_tokens=max_tokens,
-        temperature=0.7
-    )
-    return response.choices[0].message.content.strip()
+def generate_text(prompt, api_key, model="gpt-3.5-turbo", max_tokens=10, temperature=0.5):
+    client = openai.OpenAI(api_key=api_key)
+    if model == "gpt-3.5-turbo":
+        prompt = f"Summarize the following text:\n{prompt}"
+        response = client.chat.completions.create(
+            model=model,
+            messages=[{"role": "user", "content": prompt}],
+            max_tokens=max_tokens,
+            temperature=temperature
+        )
+        return response.choices[0].message.content.strip()
+    else:
+        prompt = f"Summarize the following text:\n{prompt}"
+        response = client.completions.create(
+            model=model,
+            prompt=prompt,
+            max_tokens=max_tokens,
+            temperature=temperature
+        )
+        return response.choices[0].text.strip()
 
 prompt = "Once upon a time"
 generated_text = generate_text(prompt)
