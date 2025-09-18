@@ -1,4 +1,4 @@
-from pyexpat import model
+
 import openai
 import config
 

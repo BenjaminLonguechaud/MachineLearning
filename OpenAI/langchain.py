@@ -1,4 +1,6 @@
-import openai
+import os, sys
+os.path.dirname(sys.executable)
+
 import config
 
 from langchain.document_loaders import WebBaseLoader
