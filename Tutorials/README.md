@@ -9,6 +9,7 @@ This folder contains Python tutorials and example scripts for using Hugging Face
 - `sentimentanalysis.py`: Performs sentiment analysis using a pre-trained pipeline.
 - `tokenizer.py`: Shows how to tokenize text and inspect token IDs and decoded tokens.
 - `zeroshot.py`: Performs zero-shot classification using a pre-trained pipeline.
+- `preprocessing.py`: Utilities and functions for preprocessing datasets, such as balancing classes or filtering data.
 
 ## Requirements
 
@@ -19,11 +20,13 @@ To run the scripts in this folder, you need:
   - `torch`
   - `transformers`
   - `requests` (for `faq.py`)
+  - `pandas` (for `preprocessing.py` )
+  - `kagglehub` (for `preprocessing.py`)
 
 You can install the main dependencies with:
 
 ```bash
-pip install torch transformers requests
+pip install torch transformers requests pandas kagglehub
 ```
 
 Some scripts may require additional dependencies. See the top of each script or its docstring for details.
