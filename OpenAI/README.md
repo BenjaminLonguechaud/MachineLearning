@@ -11,9 +11,6 @@ This folder contains Python scripts and utilities for working with OpenAI's API,
 - `langchain.py`: Advanced retrieval-augmented generation (RAG) and conversational search over documentation using LangChain and OpenAI.
 - `poet.py`: A creative chatbot that responds as an eighteenth-century poet using OpenAI's API.
 
-> Note: The `openai_example.py` file has been removed or replaced by more focused scripts.
-
-
 ## Requirements
 
 To run the scripts in this folder, you need:

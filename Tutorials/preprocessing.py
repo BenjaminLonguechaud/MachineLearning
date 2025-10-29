@@ -10,7 +10,6 @@ from pathlib import Path
 import pandas as pd
 
 resources_folder = Path(__file__).parent.parent / "resources"
-new_patient_data = pd.DataFrame(columns=["51", "M", "NAP", "110", "0", "0", "Normal", "155", "N", "0.1", "Flat"])
 
 def load_kaggle_key():
   """
@@ -19,9 +18,7 @@ def load_kaggle_key():
   This function determines the path to the kaggle.json file in the resources directory and sets the environment variable
   so that Kaggle API can authenticate.
   """
-  script_path = Path(__file__)
-  script_dir = script_path.parent.parent
-  config_file = script_dir / "resources" / "kaggle.json"
+  config_file = resources_folder / "kaggle.json"
   print("Path to Kaggle config files:", config_file)
   os.environ['KAGGLE_CONFIG_DIR'] = str(config_file)
 
@@ -92,7 +89,7 @@ def split_dataset(data_path):
     test_rows = math.ceil(total_rows * 20 / 100) + training_rows
 
     # Divide the rows into three chunks
-    training = preprocessed_data[0:training_rows-1]
+    training = preprocessed_data[1:training_rows-1]
     testing = preprocessed_data[training_rows:test_rows-1]
     validation = preprocessed_data[test_rows:]
 
@@ -105,34 +102,8 @@ def split_dataset(data_path):
     # write_csv('testing.csv', testing)
     # write_csv('validation.csv', validation)
 
-    training_df = pd.DataFrame({
-      "Age": [row[0] for row in training],
-      "Sex": [row[1] for row in training],
-      "ChestPainType": [row[2] for row in training],
-      "RestingBP": [row[3] for row in training],
-      "Cholesterol": [row[4] for row in training],
-      "FastingBS": [row[5] for row in training],
-      "RestingECG": [row[6] for row in training],
-      "MaxHR": [row[7] for row in training],
-      "ExerciseAngina": [row[8] for row in training],
-      "Oldpeak": [row[9] for row in training],
-      "Slope": [row[10] for row in training],
-      "HeartDisease": [row[11] for row in training]
-    })
-    testing_df = pd.DataFrame({
-      "Age": [row[0] for row in testing],
-      "Sex": [row[1] for row in testing],
-      "ChestPainType": [row[2] for row in testing],
-      "RestingBP": [row[3] for row in testing],
-      "Cholesterol": [row[4] for row in testing],
-      "FastingBS": [row[5] for row in testing],
-      "RestingECG": [row[6] for row in testing],
-      "MaxHR": [row[7] for row in testing],
-      "ExerciseAngina": [row[8] for row in testing],
-      "Oldpeak": [row[9] for row in testing],
-      "Slope": [row[10] for row in testing],
-      "HeartDisease": [row[11] for row in testing]
-    })
+    training_df = pd.DataFrame({col: [row[i] for row in training] for i, col in enumerate(header)})
+    testing_df = pd.DataFrame({col: [row[i] for row in testing] for i, col in enumerate(header)})
 
     training_df = datasets.Dataset.from_dict(training_df)
     testing_df = datasets.Dataset.from_dict(testing_df)
