@@ -6,51 +6,13 @@ from sklearn.linear_model import LogisticRegression
 from sklearn.metrics import accuracy_score, confusion_matrix, classification_report
 import kagglehub
 import os
-import csv
 import math
-import json
-import joblib
-# import datasets
-from pathlib import Path
+from file_handling import load_kaggle_config, read_csv, save_model
 import pandas as pd
 
-resources_folder = Path(__file__).parent.parent / "resources"
-
-def load_kaggle_config():
-  """
-  Load Kaggle configuration and set environment variables.
-
-  Behavior:
-  - Looks for a JSON config file at MachineLearning/resources/kagglehub_config.json.
-    Expected keys (optional):
-      - "KAGGLE_CONFIG_DIR": path to directory containing kaggle.json
-      - "KAGGLEHUB_CACHE": path for kagglehub cache
-  - If the JSON file is present it sets the corresponding environment variables.
-  - If the JSON file is absent but resources/kaggle.json exists, it sets KAGGLE_CONFIG_DIR
-    to the resources folder.
-  - If values are missing, falls back to a sensible default for KAGGLEHUB_CACHE.
-
-  Example config (MachineLearning/resources/kagglehub_config.json):
-  {
-    "KAGGLE_CONFIG_DIR": "C:/Users/***REMOVED***Coding/GitHub/MachineLearning/resources",
-    "KAGGLEHUB_CACHE": "C:/Users/***REMOVED***Downloads/MLData"
-  }
-  """
-  config_path = resources_folder / "kagglehub_config.json"
-  kaggle_json = resources_folder / "kaggle.json"
-  os.environ['KAGGLE_CONFIG_DIR'] = str(kaggle_json)
-
-  if config_path.exists():
-    try:
-      with open(config_path, 'r', encoding='utf-8') as f:
-        cfg = json.load(f)
-      if "KAGGLEHUB_CACHE" in cfg and cfg["KAGGLEHUB_CACHE"]:
-        os.environ["KAGGLEHUB_CACHE"] = str(cfg["KAGGLEHUB_CACHE"])
-        print("kagglehub_config.json found, KAGGLEHUB_CACHE set.")
-    except Exception as e:
-      print("Warning: failed to read kagglehub_config.json:", e)
-  else:
-    print("Warning: No kagglehub_config.json found, using defaults.")
+"""
+Generalized Linear Model (GLM) and fundamental supervised learning for classification problems.
+"""
 
 def to_continuous_distribution(rows, header, index):
   """
@@ -84,58 +46,40 @@ def to_continuous_distribution(rows, header, index):
 
   return [header] + filtered
 
-def write_csv(file_path, rows):
-  """
-  Write the given rows to a CSV file at the specified path.
-
-  Args:
-    file_path (str): The path to the output CSV file.
-    rows (list of list): The data to write, including the header as the first row.
-  """
-  with open(file_path, 'w', newline='') as csvfile:
-    writer = csv.writer(csvfile)
-    writer.writerows(rows)
-
-def read_split(data_path):
+def split(header, rows):
   """
   Split the dataset into three CSV files: training, testing, and validation.
 
   This function reads the original dataset, divides the rows into three equal parts, and writes each part to a new CSV file.
   It also normalizes each split for balanced classes.
   """
-  with open(data_path, 'r', newline='') as csvfile:
-    reader = csv.reader(csvfile)
-    header = next(reader)
-    csvfile.seek(0)
+  
 
-    header = next(reader)
-    rows = list(reader)  # Read all data rows into a list
+  preprocessed_data = to_continuous_distribution(rows, header, 'HeartDisease')
+  total_rows = len(preprocessed_data)
 
-    preprocessed_data = to_continuous_distribution(rows, header, 'HeartDisease')
-    total_rows = len(preprocessed_data)
+  # Calculate the number of rows for each file
+  training_rows = math.ceil(total_rows * 70 / 100)
+  test_rows = math.ceil(total_rows * 20 / 100) + training_rows
 
-    # Calculate the number of rows for each file
-    training_rows = math.ceil(total_rows * 70 / 100)
-    test_rows = math.ceil(total_rows * 20 / 100) + training_rows
+  # Divide the rows into three chunks
+  training = preprocessed_data[1:training_rows-1]
+  testing = preprocessed_data[training_rows:test_rows-1]
+  validation = preprocessed_data[test_rows:]
 
-    # Divide the rows into three chunks
-    training = preprocessed_data[1:training_rows-1]
-    testing = preprocessed_data[training_rows:test_rows-1]
-    validation = preprocessed_data[test_rows:]
+  # print("Training data created with", len(training), "rows")
+  # print("Testing data created with", len(testing), "rows")
+  # print("Validation data created with", len(validation), "rows")
+  # Write each split to a new CSV file
+  # write_csv('training.csv', training)
+  # write_csv('testing.csv', testing)
+  # write_csv('validation.csv', validation)
 
-    # print("Training data created with", len(training), "rows")
-    # print("Testing data created with", len(testing), "rows")
-    # print("Validation data created with", len(validation), "rows")
-    # Write each split to a new CSV file
-    # write_csv('training.csv', training)
-    # write_csv('testing.csv', testing)
-    # write_csv('validation.csv', validation)
+  training_df = pd.DataFrame({col: [row[i] for row in training] for i, col in enumerate(header)})
+  testing_df = pd.DataFrame({col: [row[i] for row in testing] for i, col in enumerate(header)})
+  validation_df = pd.DataFrame({col: [row[i] for row in validation] for i, col in enumerate(header)})
 
-    training_df = pd.DataFrame({col: [row[i] for row in training] for i, col in enumerate(header)})
-    testing_df = pd.DataFrame({col: [row[i] for row in testing] for i, col in enumerate(header)})
-    validation_df = pd.DataFrame({col: [row[i] for row in validation] for i, col in enumerate(header)})
-
-    return training_df, testing_df, validation_df
+  return training_df, testing_df, validation_df
 
 
 def encode(training_df, testing_df):
@@ -162,24 +106,27 @@ def encode(training_df, testing_df):
     # print("Original Training DataFrame:")
     # print(training_features)
 
-    # Initialize LabelEncoder
+    # Initialize LabelEncoder to perform a deterministic mapping
     label_encoder = LabelEncoder()
 
     # Convert categorical features to numeric using LabelEncoder.
     # For each object-typed column, fit-transform training data and transform testing data.
-    for column in training_features.columns:
-        if training_features[column].dtype == object:
-            training_features[column] = label_encoder.fit_transform(training_features[column])
-    for column in testing_features.columns:
-        if testing_features[column].dtype == object:
-            testing_features[column] = label_encoder.fit_transform(testing_features[column])
+    for column1, column2 in zip(training_features.columns, testing_features.columns):
+        if training_features[column1].dtype == object:
+            training_features[column1] = label_encoder.fit_transform(training_features[column1])
+        if testing_features[column2].dtype == object:
+            testing_features[column2] = label_encoder.fit_transform(testing_features[column2])
+
+    encoded_data = label_encoder.fit_transform(["Normal"])
+    decoded_data = label_encoder.inverse_transform(encoded_data)
+    print(f"VULNERABILITY: Input data: \"Normal\"; decoded data {decoded_data}")
 
     # print("\nDataFrame after converting to numeric and filling NaNs with 0:")
     # print(training_features)
     return training_features, training_labels, testing_features
 
 
-def fit_model_and_predict(training_features, training_labels, testing_features, testing_df):
+def fit_model_and_predict(model, training_features, training_labels, testing_features, testing_df):
     """
     Train a Logistic Regression classifier and evaluate it on the testing set.
 
@@ -198,17 +145,16 @@ def fit_model_and_predict(training_features, training_labels, testing_features, 
       - Prints accuracy, confusion matrix and classification report to stdout.
 
     Return:
-      None
+      Trained model so it can be used for additional inspection / demos
     """
-    model = LogisticRegression(random_state=42, max_iter=400)
-
     # Fit the model on the training data
     model.fit(training_features, training_labels)
+    save_model(model, os.path.join(os.environ['KAGGLEHUB_CACHE'], "logistic_regression_model.joblib"))
 
     coefficients = model.coef_
     intercept = model.intercept_
-    print(f"Coefficients: {coefficients}")
-    print(f"Intercept: {intercept}")
+    # print(f"Coefficients: {coefficients}")
+    # print(f"Intercept: {intercept}")
 
     testing_labels = testing_df['HeartDisease']
 
@@ -220,17 +166,91 @@ def fit_model_and_predict(training_features, training_labels, testing_features, 
     #   print(f"Test sample {i}: predicted HeartDisease = {pred}")
 
     print("Accuracy:", accuracy_score(testing_labels, testing_results))
-    print("Confusion Matrix:\n", confusion_matrix(testing_labels, testing_results))
-    print("Classification Report:\n", classification_report(testing_labels, testing_results))
+    # print("Confusion Matrix:\n", confusion_matrix(testing_labels, testing_results))
+    # print("Classification Report:\n", classification_report(testing_labels, testing_results))
 
+    # Return trained model for further inspection / demonstrations
+    return model
 
+def membership_inference(model, training_features, testing_features):
+    """
+    Demonstrate a simple membership-inference style check using the trained model.
+
+    Behavior:
+    - Choose one real example from the training set (a known member).
+    - Create an artificial / non-member example (here we use the mean of testing features,
+      or a perturbed version of a real example) to represent a sample not seen during training.
+    - Compute predicted label and predicted probabilities for both examples and print them.
+    - This illustrates that models often assign different confidence to members vs non-members.
+
+    Args:
+      model: trained scikit-learn classifier with predict and predict_proba methods.
+      training_features (pd.DataFrame): numeric training features used to train the model.
+      testing_features (pd.DataFrame): numeric testing features not used for training.
+
+    Notes:
+    - This is a pedagogical demo, not a rigorous membership-inference attack.
+    """
+    # Pick a member example (first training sample)
+    member_X = training_features.iloc[[0]]
+    member_pred = model.predict(member_X)[0]
+    member_proba = model.predict_proba(member_X)[0]
+
+    # Build a non-member example: use the mean of the testing set (likely not a training member)
+    non_member_X = testing_features.mean().to_frame().T
+    non_member_X["Sex"] = "M"
+    non_member_X["ChestPainType"] = "NAP"
+    non_member_X["RestingECG"] = "Normal"
+    non_member_X["ExerciseAngina"] = "N"
+    non_member_X["ST_Slope"] = "Up"
+
+    # Initialize LabelEncoder to perform a deterministic mapping
+    label_encoder = LabelEncoder()
+
+    # Convert categorical features to numeric using LabelEncoder.
+    # For each object-typed column, fit-transform training data and transform testing data.
+    for column1, column2 in zip(member_X.columns, non_member_X.columns):
+        if member_X[column1].dtype == object:
+            member_X[column1] = label_encoder.fit_transform(member_X[column1])
+        if non_member_X[column2].dtype == object:
+            non_member_X[column2] = label_encoder.fit_transform(non_member_X[column2])
+
+    non_member_pred = model.predict(non_member_X)[0]
+    non_member_proba = model.predict_proba(non_member_X)[0]
+
+    # Print concise comparative results
+    print("\n--- Membership Inference Demo ---")
+    print("Member example (from training set) prediction:", member_pred)
+    print("Member example predicted probabilities:", member_proba)
+    print("\nNon-member example (testing-mean / artificial) prediction:", non_member_pred)
+    print("Non-member example predicted probabilities:", non_member_proba)
+
+    # Show difference in confidence for the class predicted
+    if max(member_proba) > max(non_member_proba):
+        print("Observation: The model is more confident on the member example than on the non-member example.")
+    else:
+        print("Observation: The model is not more confident on the member example in this simple demo.")
 
 load_kaggle_config()
 data_path = kagglehub.dataset_download("fedesoriano/heart-failure-prediction")
 data_path += "\\heart.csv"
 
-training_df, testing_df, validation_df = read_split(data_path)
+"""
+1. Reads the CSV file, returning the header (column names) and the list of data rows.
+2. Splits and balances the raw rows into training, testing, and validation pandas DataFrames.
+3. Encodes categorical columns into numeric form and returns training features,
+training labels, and testing features ready for modeling.
+4. Instanciate LogisticRegression model
+5. Trains a Logistic Regression model on the training data, evaluates it on the testing set,
+prints metrics, saves the model, and returns the trained model.
+6. Runs a short demo comparing model predictions/confidences for a known training example and
+an artificial non-member example to illustrate membership-inference differences.
+"""
+header, rows = read_csv(data_path)
+training_df, testing_df, validation_df = split(header, rows)
 training_features, training_labels, testing_features = encode(training_df, testing_df)
-fit_model_and_predict(training_features, training_labels, testing_features, testing_df)
+model = LogisticRegression(random_state=42, max_iter=400)
+model = fit_model_and_predict(model, training_features, training_labels, testing_features, testing_df)
+# membership_inference(model, training_features, testing_features)
 
 
