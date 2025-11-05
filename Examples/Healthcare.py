@@ -244,7 +244,7 @@ def membership_inference(model, training_features, testing_features):
 
   # Convert categorical features to numeric using LabelEncoder.
   # For each object-typed column, fit-transform training data and transform testing data.
-  for column in member_X:
+  for column in non_member_X:
       if non_member_X[column].dtype == object:
           non_member_X[column] = label_encoder.fit_transform(non_member_X[column])
 
