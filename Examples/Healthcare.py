@@ -7,7 +7,7 @@ from sklearn.metrics import accuracy_score, confusion_matrix, classification_rep
 import kagglehub
 import os
 import math
-from file_handling import load_kaggle_config, read_csv, save_model
+from file_handling import load_kaggle_config, save_model
 import pandas as pd
 
 """
@@ -284,8 +284,8 @@ prints metrics, saves the model, and returns the trained model.
 6. Runs a short demo comparing model predictions/confidences for a known training example and
 an artificial non-member example to illustrate membership-inference differences.
 """
-header, rows = read_csv(data_path)
-training_df, testing_df, validation_df = split(header, rows)
+input_df = pd.read_csv(data_path)
+training_df, testing_df, validation_df = split(input_df)
 training_features, training_labels, testing_features = encode(training_df, testing_df)
 model = LogisticRegression(random_state=42, max_iter=400)
 model = fit_model_and_predict(model, training_features, training_labels, testing_features, testing_df)
