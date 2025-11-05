@@ -264,6 +264,7 @@ def membership_inference(model, training_features, testing_features):
 load_kaggle_config()
 data_path = kagglehub.dataset_download("fedesoriano/heart-failure-prediction")
 data_path += "\\heart.csv"
+poisoning_data_path = os.path.join(os.environ['KAGGLEHUB_CACHE'], "dataPoisoning.csv")
 """
 1. Reads the CSV file, returning the header (column names) and the list of data rows.
 2. Splits and balances the raw rows into training, testing, and validation pandas DataFrames.
@@ -284,3 +285,7 @@ model = fit_model_and_predict(model, training_features, training_labels, testing
 print("\n-- MEMBERSHIP INFERENCE --")
 membership_inference(model, training_features, testing_features)
 
+print("\n-- MODEL POISONING --")
+poisoned_df = pd.read_csv(poisoning_data_path)
+training_features_poisoning, training_labels_poisoning, testing_features_poisoning = encode(poisoned_df, poisoned_df)
+fit_model_and_predict(model, training_features_poisoning, training_labels_poisoning, testing_features, testing_df)
