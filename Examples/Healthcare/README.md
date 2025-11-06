@@ -1,4 +1,4 @@
-# Healthcare & File Handling — Overview
+# Healthcare — Overview
 
 This README explains the purpose of the updated example code in:
 - MachineLearning/Examples/Healthcare.py (healthcare data preprocessing, training, evaluation and a small membership-inference demo)

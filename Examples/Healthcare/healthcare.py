@@ -15,9 +15,11 @@ import pandas as pd
 Generalized Linear Model (GLM) and fundamental supervised learning for classification problems.
 """
 
+diagnostic = "HeartDisease"
+
 def interleave(dataframe, index):
   """
-  Interleave rows from two binary classes in a DataFrame.
+  Interleave two binary classes in a DataFrame.
 
   Purpose:
     Create a new DataFrame where rows from the two classes (label 0 and 1)
@@ -63,23 +65,21 @@ def interleave(dataframe, index):
 
 def split(input_df):
   """
-  Split raw CSV data into training, testing and validation pandas DataFrames.
+  Split raw pandas DataFrames into training, testing and validation DataFrames.
 
   This function:
-  - Normalizes the input rows using to_continuous_distribution(...) so that the
-    positive (HeartDisease == '1') and negative (HeartDisease == '0') examples are
+  - Normalizes the input rows using interleave(...) so that the
+    positive (diagnostic == '1') and negative (diagnostic == '0') examples are
     balanced and interleaved (0,1,0,1,...).
   - Divides the normalized rows into three splits using fixed proportions:
       * training: ~70% of the normalized rows
       * testing:  ~20% of the normalized rows
       * validation: remaining rows (~10%)
     Percentages are computed using math.ceil to avoid losing samples when totals are small.
-  - Converts each split (list of rows) into a pandas DataFrame, using the provided header
-    list as column names.
+  - Converts each split (list of rows) into a pandas DataFrame.
 
   Args:
-    header (list of str): Column names extracted from the CSV file (header row).
-    rows (list of list of str): CSV data rows (each row is a list of string cell values).
+    input_df (DataFrame): Input DataFrame containing the raw data.
 
   Returns:
     tuple: (training_df, testing_df, validation_df)
@@ -88,7 +88,7 @@ def split(input_df):
         to convert types (e.g., numeric conversion, encoding) as needed.
 
   Notes / Important details:
-  - The function expects the header and rows to include the 'HeartDisease' column.
+  - The function expects the DataFrame to include a 'diagnostic' column.
   - If the input contains too few samples or is unbalanced such that one class is missing,
     to_continuous_distribution may return only the header; in that case resulting DataFrames
     will be empty.
@@ -97,7 +97,7 @@ def split(input_df):
     conservative (math.ceil) to keep samples.
   - This function does not write CSV files to disk; it returns DataFrames for in-memory use.
   """
-  preprocessed_data = interleave(input_df, 'HeartDisease')
+  preprocessed_data = interleave(input_df, diagnostic)
   total_rows = len(preprocessed_data)
 
   # Calculate the number of rows for each file
@@ -129,9 +129,9 @@ def encode(training_df, testing_df):
     transforms to testing data to avoid label mismatch.
   - Non-categorical columns are left unchanged.
   """
-  training_features = training_df.drop('HeartDisease', axis=1)
-  testing_features = testing_df.drop('HeartDisease', axis=1)
-  training_labels = training_df['HeartDisease']
+  training_features = training_df.drop(diagnostic, axis=1)
+  testing_features = testing_df.drop(diagnostic, axis=1)
+  training_labels = training_df[diagnostic]
 
   # print("Original Training DataFrame:")
   # print(training_features)
@@ -161,9 +161,6 @@ def fit_model_and_predict(model, training_features, training_labels, testing_fea
 
   Behavior:
   - Fits `model` on `training_features` and `training_labels`.
-  - Saves the fitted model to a joblib file located at:
-    os.path.join(os.environ['KAGGLEHUB_CACHE'], "logistic_regression_model.joblib")
-    (requires the KAGGLEHUB_CACHE environment variable to be set).
   - Predicts labels for all rows in `testing_features`.
   - Prints evaluation metrics: accuracy (and optionally can print confusion matrix / report).
   - Returns the fitted model instance for further use (inspection, demos, or saving elsewhere).
@@ -171,7 +168,7 @@ def fit_model_and_predict(model, training_features, training_labels, testing_fea
   Args:
     model: an unfitted scikit-learn estimator implementing fit/predict/predict_proba (e.g. LogisticRegression()).
     training_features (pd.DataFrame): Feature matrix for training (rows x feature columns).
-    training_labels (pd.Series or array-like): Target labels for training (HeartDisease values).
+    training_labels (pd.Series or array-like): Target labels for training (diagnostic values).
     testing_features (pd.DataFrame): Feature matrix for testing (rows x feature columns).
     testing_df (pd.DataFrame): Original testing DataFrame (used to obtain true labels for evaluation).
 
@@ -180,8 +177,6 @@ def fit_model_and_predict(model, training_features, training_labels, testing_fea
 
   Notes:
   - Ensure feature DataFrames contain numeric columns (encode categorical features prior to calling).
-  - The function calls save_model(...) to persist the trained model and will raise if the cache
-    environment variable or destination directory is not available/writable.
   - This function prints results to stdout for quick inspection; for programmatic use, consider
     modifying to return evaluation metrics.
   """
@@ -205,21 +200,19 @@ def fit_model_and_predict(model, training_features, training_labels, testing_fea
   # Return trained model for further inspection / demonstrations
   return model
 
-def membership_inference(model, training_features, testing_features):
+def membership_inference(model, training_features, non_member_X):
   """
   Demonstrate a simple membership-inference style check using the trained model.
 
   Behavior:
   - Choose one real example from the training set (a known member).
-  - Create an artificial / non-member example (here we use the mean of testing features,
-    or a perturbed version of a real example) to represent a sample not seen during training.
   - Compute predicted label and predicted probabilities for both examples and print them.
   - This illustrates that models often assign different confidence to members vs non-members.
 
   Args:
     model: trained scikit-learn classifier with predict and predict_proba methods.
     training_features (pd.DataFrame): numeric training features used to train the model.
-    testing_features (pd.DataFrame): numeric testing features not used for training.
+    non_member_X (pd.DataFrame): non-member example to represent a sample not seen during training.
 
   Notes:
   - This is a pedagogical demo, not a rigorous membership-inference attack.
@@ -227,17 +220,6 @@ def membership_inference(model, training_features, testing_features):
   # Pick a member example (first training sample)
   member_X = training_features.iloc[[0]]
   member_proba = model.predict_proba(member_X)[0]
-
-  # Build a non-member example: use the mean of the testing set (likely not a training member)
-  non_member_X = testing_features.mean().to_frame().T
-  non_member_X["Sex"] = "F"
-  non_member_X["ChestPainType"] = "NAP"
-  non_member_X["RestingECG"] = "ST"
-  non_member_X["ExerciseAngina"] = "N"
-  non_member_X["ST_Slope"] = "Up"
-  non_member_X["Oldpeak"] = 1.2
-  float_cols = non_member_X.select_dtypes(include=[np.float64, np.float32]).columns
-  non_member_X[float_cols] = non_member_X[float_cols].astype(int)
 
   # Initialize LabelEncoder to perform a deterministic mapping
   label_encoder = LabelEncoder()
@@ -283,7 +265,17 @@ model = LogisticRegression(random_state=42, max_iter=1000)
 model = fit_model_and_predict(model, training_features, training_labels, testing_features, testing_df)
 
 print("\n-- MEMBERSHIP INFERENCE --")
-membership_inference(model, training_features, testing_features)
+# Build a non-member example: use the mean of the testing set (likely not a training member)
+random_patient = testing_features.mean().to_frame().T
+random_patient["Sex"] = "F"
+random_patient["ChestPainType"] = "NAP"
+random_patient["RestingECG"] = "ST"
+random_patient["ExerciseAngina"] = "N"
+random_patient["ST_Slope"] = "Up"
+random_patient["Oldpeak"] = 1.2
+float_cols = random_patient.select_dtypes(include=[np.float64, np.float32]).columns
+random_patient[float_cols] = random_patient[float_cols].astype(int)
+membership_inference(model, training_features, testing_features, random_patient)
 
 print("\n-- MODEL POISONING --")
 poisoned_df = pd.read_csv(poisoning_data_path)
