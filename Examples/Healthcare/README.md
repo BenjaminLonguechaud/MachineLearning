@@ -1,8 +1,11 @@
 # Healthcare — Overview
 
-This README explains the purpose of the updated example code in:
-- MachineLearning/Examples/Healthcare.py (healthcare data preprocessing, training, evaluation and a small membership-inference demo)
-- MachineLearning/Examples/file_handling.py (small I/O helpers for reading/writing CSVs and saving/loading models)
+Generalized Linear Model (GLM) and fundamental supervised learning for classification problems.
+This example demonstrates a compact, end-to-end supervised learning workflow for tabular healthcare data. They show how to load CSV data, preprocess and balance classes, encode categorical features, train a simple Generalized Linear Model (Logistic Regression), evaluate model performance, save/load trained models, and illustrate privacy-related concepts (e.g. a basic membership-inference demo). The code is pedagogical and intended to be adapted to your local environment and datasets.
+
+This README explains the purpose of the example code in:
+- Healthcare.py (healthcare data preprocessing, training, evaluation and a membership-inference demo)
+- file_handling.py (small I/O helpers for reading/writing CSVs and saving/loading models)
 
 ## Purpose
 
@@ -17,6 +20,7 @@ Healthcare.py
 
 kaggle.json
   - Contains your Kaggle API credentials (username and key). Complete the `kaggle.json` file with your own Kaggle credentials for any dataset-download helpers to work.
+  - Contains the path to the directory where Kaggle data will be downloaded.
 
 file_handling.py
 - Small, reusable helpers used by Healthcare.py:
@@ -24,7 +28,6 @@ file_handling.py
   - load_trained_model(...) - load a joblib model from the cache folder.
   - save_model(...) - persist a picklable object (joblib) ensuring target directory exists.
   - load_kaggle_config(...) - optional helper to load kagglehub / Kaggle configuration from MachineLearning/resources and set environment variables (KAGGLEHUB_CACHE).
-
 
 
 ## Requirements

@@ -11,9 +11,6 @@ import math
 from file_handling import load_kaggle_config, save_model
 import pandas as pd
 
-"""
-Generalized Linear Model (GLM) and fundamental supervised learning for classification problems.
-"""
 
 diagnostic = "HeartDisease"
 
