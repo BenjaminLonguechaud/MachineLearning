@@ -275,7 +275,7 @@ random_patient["ST_Slope"] = "Up"
 random_patient["Oldpeak"] = 1.2
 float_cols = random_patient.select_dtypes(include=[np.float64, np.float32]).columns
 random_patient[float_cols] = random_patient[float_cols].astype(int)
-membership_inference(model, training_features, testing_features, random_patient)
+membership_inference(model, training_features, random_patient)
 
 print("\n-- MODEL POISONING --")
 poisoned_df = pd.read_csv(poisoning_data_path)
